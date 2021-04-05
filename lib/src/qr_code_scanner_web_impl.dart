@@ -131,7 +131,6 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   @override
   void initState() {
     super.initState();
-    cameraController.startCamera();
     Future.delayed(Duration(milliseconds: 20), () {
       tick();
     });
@@ -153,7 +152,7 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
         _canvasElement.width ?? 0,
         _canvasElement.height ?? 0,
       );
-      js.JsObject code = _jsQR(
+      js.JsObject? code = _jsQR(
         imageData.data,
         imageData.width,
         imageData.height,
