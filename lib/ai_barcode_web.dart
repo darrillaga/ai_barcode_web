@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:ai_barcode_platform_interface/ai_barcode_platform_interface.dart';
 import 'package:ai_barcode_web/src/qr_code_scanner_web.dart';
+import 'package:ai_barcode_web/src/qr_code_scanner_web_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -36,6 +37,8 @@ class AiBarcodeScannerWebPlugin extends AiBarcodeScannerPlatform {
 //    });
   }
 
+  final CameraController _cameraController = DefaultCameraController.create();
+
 //  @override
 //  Widget buildScannerView(BuildContext context) {
 //    Future.delayed(Duration(seconds: 2))
@@ -51,40 +54,32 @@ class AiBarcodeScannerWebPlugin extends AiBarcodeScannerPlatform {
       qrCodeCallback: (String result) {
         notifyResultListenerCallback(result);
       },
+      cameraController: _cameraController,
     );
   }
 
   @override
   startCamera() async {
     //start camera
-//    html.window.navigator
-//        .getUserMedia(video: true)
-//        .then((html.MediaStream mediaStream) {
-//      _videoElement.srcObject = mediaStream;
-//      return mediaStream;
-//    });
+    await _cameraController.startCamera();
   }
 
   @override
   Future<String> startCameraPreview() async {
     //start camera preview
-//    _videoElement.play();
-    return Future.delayed(Duration(seconds: 10))
-        .then((value) => "after 10 second ,web code result doing!");
+    return _cameraController.startCameraPreview();
   }
 
   @override
   stopCameraPreview() async {
     //stop camera preview
-//    _videoElement.pause();
+    await _cameraController.stopCameraPreview();
   }
 
   @override
   stopCamera() async {
     //stop camera and release camera
-//    _videoElement.srcObject.getTracks().forEach((element) {
-//      element.stop();
-//    });
+    await _cameraController.stopCamera();
   }
 
   @override

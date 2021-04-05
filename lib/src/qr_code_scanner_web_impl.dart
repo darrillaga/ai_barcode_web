@@ -30,6 +30,8 @@ class DefaultCameraController implements CameraController {
 
   DefaultCameraController._();
 
+  factory DefaultCameraController.create() => DefaultCameraController._();
+
   html.VideoElement? _video;
 
   @override
@@ -73,7 +75,7 @@ class QrCodeCameraWebImpl extends StatefulWidget {
     Key? key,
     required this.qrCodeCallback,
     this.child,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     this.onError,
     CameraController? cameraController
   }) :
