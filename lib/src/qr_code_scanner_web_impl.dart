@@ -28,11 +28,25 @@ dynamic _jsQR(d, w, h, o) {
 
 class DefaultCameraController implements CameraController {
 
-  DefaultCameraController._();
+  //see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/readyState
+  static const _HAVE_ENOUGH_DATA = 4;
+
+  late html.CanvasElement _canvasElement;
+  late html.CanvasRenderingContext2D _canvas;
+
+  DefaultCameraController._() {
+    _canvasElement = html.CanvasElement();
+
+    var canvas = _canvasElement.getContext("2d");
+    assert(canvas != null);
+    _canvas = canvas as html.CanvasRenderingContext2D;
+  }
 
   factory DefaultCameraController.create() => DefaultCameraController._();
 
   html.VideoElement? _video;
+  void Function(String qrValue)? _qrCodeCallback;
+  bool _running = false;
 
   @override
   startCamera() async =>
@@ -52,10 +66,17 @@ class DefaultCameraController implements CameraController {
   });
 
   @override
-  Future<String> startCameraPreview() async => _video?.play() as Future<String>? ?? Future.value("");
+  startCameraPreview() async {
+    await _video?.play();
+    _running = true;
+    Future.delayed(Duration(milliseconds: 20), () => tick());
+  }
 
   @override
-  stopCameraPreview() async => _video?.pause();
+  stopCameraPreview() async {
+    _running = false;
+    _video?.pause();
+  }
 
   @override
   stopCamera() async {
@@ -63,6 +84,41 @@ class DefaultCameraController implements CameraController {
     _video?.srcObject?.getTracks().forEach((element) {
       element.stop();
     });
+  }
+
+  tick() {
+    if (!_running) {
+      return;
+    }
+
+    if (_video == null) {
+      return;
+    }
+
+    if (_video!.readyState == _HAVE_ENOUGH_DATA) {
+      _canvasElement.width = _video!.videoWidth;
+      _canvasElement.height = _video!.videoHeight;
+      _canvas.drawImage(_video!, 0, 0);
+      var imageData = _canvas.getImageData(
+        0,
+        0,
+        _canvasElement.width ?? 0,
+        _canvasElement.height ?? 0,
+      );
+      js.JsObject? code = _jsQR(
+        imageData.data,
+        imageData.width,
+        imageData.height,
+        {
+          'inversionAttempts': 'dontInvert',
+        },
+      );
+      if (code != null) {
+        String value = code['data'];
+        _qrCodeCallback?.call(value);
+      }
+    }
+    Future.delayed(Duration(milliseconds: 10), () => tick());
   }
 }
 
@@ -96,22 +152,18 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   final String _uniqueKey = UniqueKey().toString();
   final CameraController cameraController;
 
-  //see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/readyState
-  static const _HAVE_ENOUGH_DATA = 4;
-
   // Webcam widget to insert into the tree
   late Widget _videoWidget;
 
   // VideoElement
   late html.VideoElement _video;
-  late html.CanvasElement _canvasElement;
-  late html.CanvasRenderingContext2D _canvas;
 
   _QrCodeCameraWebImplState(this.cameraController) {
     // Create a video element which will be provided with stream source
     _video = html.VideoElement();
     if (cameraController is DefaultCameraController) {
       (cameraController as DefaultCameraController)._video = _video;
+      (cameraController as DefaultCameraController)._qrCodeCallback = widget.qrCodeCallback;
     }
     // Register an webcam
     // ignore: undefined_prefixed_name
@@ -120,52 +172,6 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
     // Create video widget
     _videoWidget = HtmlElementView(
       key: UniqueKey(), viewType: 'webcamVideoElement$_uniqueKey');
-
-    _canvasElement = html.CanvasElement();
-
-    var canvas = _canvasElement.getContext("2d");
-    assert(canvas != null);
-    _canvas = canvas as html.CanvasRenderingContext2D;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration(milliseconds: 20), () {
-      tick();
-    });
-  }
-
-  bool _disposed = false;
-  tick() {
-    if (_disposed) {
-      return;
-    }
-
-    if (_video.readyState == _HAVE_ENOUGH_DATA) {
-      _canvasElement.width = _video.videoWidth;
-      _canvasElement.height = _video.videoHeight;
-      _canvas.drawImage(_video, 0, 0);
-      var imageData = _canvas.getImageData(
-        0,
-        0,
-        _canvasElement.width ?? 0,
-        _canvasElement.height ?? 0,
-      );
-      js.JsObject? code = _jsQR(
-        imageData.data,
-        imageData.width,
-        imageData.height,
-        {
-          'inversionAttempts': 'dontInvert',
-        },
-      );
-      if (code != null) {
-        String value = code['data'];
-        this.widget.qrCodeCallback(value);
-      }
-    }
-    Future.delayed(Duration(milliseconds: 10), () => tick());
   }
 
   @override
@@ -186,7 +192,6 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
 
   @override
   void dispose() {
-    _disposed = true;
     cameraController.stopCamera();
     super.dispose();
   }

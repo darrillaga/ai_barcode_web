@@ -67,7 +67,8 @@ class AiBarcodeScannerWebPlugin extends AiBarcodeScannerPlatform {
   @override
   Future<String> startCameraPreview() async {
     //start camera preview
-    return _cameraController.startCameraPreview();
+    await _cameraController.startCameraPreview();
+    return "";
   }
 
   @override

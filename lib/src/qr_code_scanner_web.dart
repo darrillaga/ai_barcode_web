@@ -4,7 +4,7 @@ import 'qr_code_scanner_web_impl.dart';
 abstract class CameraController {
   Future<void> startCamera();
 
-  Future<String> startCameraPreview();
+  Future<void> startCameraPreview();
 
   Future<void> stopCameraPreview();
 
