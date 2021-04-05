@@ -35,22 +35,21 @@ class DefaultCameraController implements CameraController {
   html.VideoElement? _video;
 
   @override
-  startCamera() async {
+  startCamera() async =>
     // Access the webcam stream
-    html.window.navigator.getUserMedia(video: {'facingMode': 'environment'})
+  html.window.navigator.getUserMedia(video: {'facingMode': 'environment'})
 //        .mediaDevices   //don't work rear camera
 //        .getUserMedia({
 //      'video': {
 //        'facingMode': 'environment',
 //      }
 //    })
-      .then((html.MediaStream stream) {
-      _video?.srcObject = stream;
-      _video?.setAttribute('playsinline',
-        'true'); // required to tell iOS safari we don't want fullscreen
-      _video?.play();
-    });
-  }
+    .then((html.MediaStream stream) {
+    _video?.srcObject = stream;
+    _video?.setAttribute('playsinline',
+      'true'); // required to tell iOS safari we don't want fullscreen
+    _video?.play();
+  });
 
   @override
   Future<String> startCameraPreview() async => _video?.play() as Future<String>? ?? Future.value("");
@@ -59,9 +58,12 @@ class DefaultCameraController implements CameraController {
   stopCameraPreview() async => _video?.pause();
 
   @override
-  stopCamera() async => _video?.srcObject?.getTracks().forEach((element) {
-    element.stop();
-  });
+  stopCamera() async {
+    await stopCameraPreview();
+    _video?.srcObject?.getTracks().forEach((element) {
+      element.stop();
+    });
+  }
 }
 
 class QrCodeCameraWebImpl extends StatefulWidget {
@@ -79,8 +81,8 @@ class QrCodeCameraWebImpl extends StatefulWidget {
     this.onError,
     CameraController? cameraController
   }) :
-    this.cameraController = cameraController ?? DefaultCameraController._(),
-    super(key: key);
+      this.cameraController = cameraController ?? DefaultCameraController._(),
+      super(key: key);
 
   @override
   _QrCodeCameraWebImplState createState() => _QrCodeCameraWebImplState(
@@ -108,6 +110,9 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   _QrCodeCameraWebImplState(this.cameraController) {
     // Create a video element which will be provided with stream source
     _video = html.VideoElement();
+    if (cameraController is DefaultCameraController) {
+      (cameraController as DefaultCameraController)._video = _video;
+    }
     // Register an webcam
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
@@ -126,6 +131,7 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   @override
   void initState() {
     super.initState();
+    cameraController.startCamera();
     Future.delayed(Duration(milliseconds: 20), () {
       tick();
     });
@@ -182,14 +188,7 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   @override
   void dispose() {
     _disposed = true;
-    cameraController.stopCameraPreview();
-    Future.delayed(Duration(milliseconds: 1), () {
-      try {
-        cameraController.stopCamera();
-      } catch (e) {
-        print('error on dispose qrcode: $e');
-      }
-    });
+    cameraController.stopCamera();
     super.dispose();
   }
 }
