@@ -161,10 +161,6 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   _QrCodeCameraWebImplState(this.cameraController) {
     // Create a video element which will be provided with stream source
     _video = html.VideoElement();
-    if (cameraController is DefaultCameraController) {
-      (cameraController as DefaultCameraController)._video = _video;
-      (cameraController as DefaultCameraController)._qrCodeCallback = widget.qrCodeCallback;
-    }
     // Register an webcam
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
@@ -172,6 +168,15 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
     // Create video widget
     _videoWidget = HtmlElementView(
       key: UniqueKey(), viewType: 'webcamVideoElement$_uniqueKey');
+  }
+
+  @override
+  initState() {
+    super.initState();
+    if (cameraController is DefaultCameraController) {
+      (cameraController as DefaultCameraController)._video = _video;
+      (cameraController as DefaultCameraController)._qrCodeCallback = widget.qrCodeCallback;
+    }
   }
 
   @override
