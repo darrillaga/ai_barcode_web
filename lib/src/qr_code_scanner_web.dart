@@ -23,7 +23,7 @@ class QrCodeCameraWeb extends StatelessWidget {
     Key? key,
     required this.qrCodeCallback,
     this.child,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     this.onError,
     this.cameraController
   }) : super(key: key);
