@@ -5,11 +5,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: bcd57a48cdee499036a18d763c9019b112bbafff
+      ref: "3219a3c86375e8f8c39bf1b4c2b50652dfdb6b7a"
+      resolved-ref: "3219a3c86375e8f8c39bf1b4c2b50652dfdb6b7a"
       url: "git://github.com/darrillaga/ai_barcode_platform_interface.git"
     source: git
-    version: "2.1.0"
+    version: "2.1.1"
   async:
     dependency: transitive
     description:
