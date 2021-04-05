@@ -1,22 +1,32 @@
 import 'package:flutter/widgets.dart';
 import 'qr_code_scanner_web_impl.dart';
 
+abstract class CameraController {
+  Future<void> startCamera();
+
+  Future<String> startCameraPreview();
+
+  Future<void> stopCameraPreview();
+
+  Future<void> stopCamera();
+}
 ///
 /// QrCodeCameraWeb
 class QrCodeCameraWeb extends StatelessWidget {
   final void Function(String qrValue) qrCodeCallback;
-  final Widget child;
+  final Widget? child;
   final BoxFit fit;
-  final Widget Function(BuildContext context, Object error) onError;
+  final Widget Function(BuildContext context, Object error)? onError;
+  final CameraController? cameraController;
 
   QrCodeCameraWeb({
-    Key key,
-    @required this.qrCodeCallback,
+    Key? key,
+    required this.qrCodeCallback,
     this.child,
     this.fit = BoxFit.cover,
     this.onError,
-  })  : assert(qrCodeCallback != null),
-        super(key: key);
+    this.cameraController
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +36,7 @@ class QrCodeCameraWeb extends StatelessWidget {
       child: child,
       fit: fit,
       onError: onError,
+      cameraController: cameraController
     );
   }
 }

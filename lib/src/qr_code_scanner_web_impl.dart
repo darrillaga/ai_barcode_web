@@ -13,6 +13,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
+import 'qr_code_scanner_web.dart';
+import 'qr_code_scanner_web.dart';
+import 'qr_code_scanner_web.dart';
+import 'qr_code_scanner_web.dart';
+
 ///
 ///call global function jsQR
 /// import https://github.com/cozmo/jsQR/blob/master/dist/jsQR.js on your index.html at web folder
@@ -21,56 +26,14 @@ dynamic _jsQR(d, w, h, o) {
   return js.context.callMethod('jsQR', [d, w, h, o]);
 }
 
-class QrCodeCameraWebImpl extends StatefulWidget {
-  final void Function(String qrValue) qrCodeCallback;
-  final Widget child;
-  final BoxFit fit;
-  final Widget Function(BuildContext context, Object error) onError;
+class DefaultCameraController implements CameraController {
 
-  QrCodeCameraWebImpl({
-    Key key,
-    @required this.qrCodeCallback,
-    this.child,
-    this.fit = BoxFit.cover,
-    this.onError,
-  })  : assert(qrCodeCallback != null),
-        super(key: key);
+  DefaultCameraController._();
+
+  html.VideoElement? _video;
 
   @override
-  _QrCodeCameraWebImplState createState() => _QrCodeCameraWebImplState();
-}
-
-class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
-//  final double _width = 1000;
-//  final double _height = _width / 4 * 3;
-  final String _uniqueKey = UniqueKey().toString();
-
-  //see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/readyState
-  static const _HAVE_ENOUGH_DATA = 4;
-
-  // Webcam widget to insert into the tree
-  Widget _videoWidget;
-
-  // VideoElement
-  html.VideoElement _video;
-  html.CanvasElement _canvasElement;
-  html.CanvasRenderingContext2D _canvas;
-  html.MediaStream _stream;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Create a video element which will be provided with stream source
-    _video = html.VideoElement();
-    // Register an webcam
-    // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory(
-        'webcamVideoElement$_uniqueKey', (int viewId) => _video);
-    // Create video widget
-    _videoWidget = HtmlElementView(
-        key: UniqueKey(), viewType: 'webcamVideoElement$_uniqueKey');
-
+  startCamera() async {
     // Access the webcam stream
     html.window.navigator.getUserMedia(video: {'facingMode': 'environment'})
 //        .mediaDevices   //don't work rear camera
@@ -79,15 +42,88 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
 //        'facingMode': 'environment',
 //      }
 //    })
-        .then((html.MediaStream stream) {
-      _stream = stream;
-      _video.srcObject = stream;
-      _video.setAttribute('playsinline',
-          'true'); // required to tell iOS safari we don't want fullscreen
-      _video.play();
+      .then((html.MediaStream stream) {
+      _video?.srcObject = stream;
+      _video?.setAttribute('playsinline',
+        'true'); // required to tell iOS safari we don't want fullscreen
+      _video?.play();
     });
+  }
+
+  @override
+  Future<String> startCameraPreview() async => _video?.play() as Future<String>? ?? Future.value("");
+
+  @override
+  stopCameraPreview() async => _video?.pause();
+
+  @override
+  stopCamera() async => _video?.srcObject?.getTracks().forEach((element) {
+    element.stop();
+  });
+}
+
+class QrCodeCameraWebImpl extends StatefulWidget {
+  final void Function(String qrValue) qrCodeCallback;
+  final Widget? child;
+  final BoxFit fit;
+  final Widget Function(BuildContext context, Object error)? onError;
+  final CameraController cameraController;
+
+  QrCodeCameraWebImpl({
+    Key? key,
+    required this.qrCodeCallback,
+    this.child,
+    this.fit = BoxFit.cover,
+    this.onError,
+    CameraController? cameraController
+  }) :
+    this.cameraController = cameraController ?? DefaultCameraController._(),
+    super(key: key);
+
+  @override
+  _QrCodeCameraWebImplState createState() => _QrCodeCameraWebImplState(
+    cameraController
+  );
+}
+
+class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
+//  final double _width = 1000;
+//  final double _height = _width / 4 * 3;
+  final String _uniqueKey = UniqueKey().toString();
+  final CameraController cameraController;
+
+  //see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/readyState
+  static const _HAVE_ENOUGH_DATA = 4;
+
+  // Webcam widget to insert into the tree
+  late Widget _videoWidget;
+
+  // VideoElement
+  late html.VideoElement _video;
+  late html.CanvasElement _canvasElement;
+  late html.CanvasRenderingContext2D _canvas;
+
+  _QrCodeCameraWebImplState(this.cameraController) {
+    // Create a video element which will be provided with stream source
+    _video = html.VideoElement();
+    // Register an webcam
+    // ignore: undefined_prefixed_name
+    ui.platformViewRegistry.registerViewFactory(
+      'webcamVideoElement$_uniqueKey', (int viewId) => _video);
+    // Create video widget
+    _videoWidget = HtmlElementView(
+      key: UniqueKey(), viewType: 'webcamVideoElement$_uniqueKey');
+
     _canvasElement = html.CanvasElement();
-    _canvas = _canvasElement.getContext("2d");
+
+    var canvas = _canvasElement.getContext("2d");
+    assert(canvas != null);
+    _canvas = canvas as html.CanvasRenderingContext2D;
+  }
+
+  @override
+  void initState() {
+    super.initState();
     Future.delayed(Duration(milliseconds: 20), () {
       tick();
     });
@@ -106,8 +142,8 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
       var imageData = _canvas.getImageData(
         0,
         0,
-        _canvasElement.width,
-        _canvasElement.height,
+        _canvasElement.width ?? 0,
+        _canvasElement.height ?? 0,
       );
       js.JsObject code = _jsQR(
         imageData.data,
@@ -144,12 +180,10 @@ class _QrCodeCameraWebImplState extends State<QrCodeCameraWebImpl> {
   @override
   void dispose() {
     _disposed = true;
-    _video.pause();
+    cameraController.stopCameraPreview();
     Future.delayed(Duration(milliseconds: 1), () {
       try {
-        _stream?.getTracks()?.forEach((mt) {
-          mt.stop();
-        });
+        cameraController.stopCamera();
       } catch (e) {
         print('error on dispose qrcode: $e');
       }
