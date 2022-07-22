@@ -16,7 +16,7 @@ dependencies:
     sdk: flutter
   ai_barcode_platform_interface:
     git:
-      url: git://github.com/darrillaga/ai_barcode_platform_interface.git
+      url: git@github.com:darrillaga/ai_barcode_platform_interface.git
       ref: 3219a3c86375e8f8c39bf1b4c2b50652dfdb6b7a
   # flutter create QRCode
   qr_flutter: ^4.0.0
